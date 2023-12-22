@@ -3,14 +3,17 @@ use std::{fmt::Debug, hash::Hash};
 
 /// Unique identifier for a node
 ///
-pub trait Address: Clone + Debug + Eq + PartialEq + Hash {}
+pub trait Address: ToString + Clone + Debug + Eq + PartialEq + Hash {}
 
 impl Address for String {}
 impl Address for &str {}
 
 /// Internaly unique identifier for processed messages
 ///
-pub trait MessageIndex: Clone + Debug + Eq + PartialEq + Hash + Ord + PartialOrd {}
+pub trait MessageIndex:
+    ToString + Clone + Debug + Eq + PartialEq + Hash + Ord + PartialOrd
+{
+}
 
 impl MessageIndex for u32 {}
 

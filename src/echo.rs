@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use crate::{Address, IdGenerator, MessageIndex};
+use crate::{Address, MessageIndex, Node};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub enum EchoType {
@@ -13,13 +13,13 @@ pub enum EchoType {
 
 /// This trait has to be implement for every Node alongside any workload specific functionality
 ///
-pub trait EchoHandler<A: Address, I: MessageIndex>: IdGenerator<I> {
+pub trait EchoHandler<A: Address, I: MessageIndex>: Node<A, I> {
     fn respond_echo(&mut self, incoming: &EchoRequest<I>) -> Result<EchoResponse<I>, crate::Error> {
         match incoming.kind {
             EchoType::Request => Ok(EchoResponse {
                 kind: EchoType::Response,
                 in_reply_to: incoming.message_id.clone(),
-                message_id: self.gen_id(),
+                message_id: self.gen_msg_id(),
                 echo: incoming.echo.clone(),
             }),
             EchoType::Response => Err(crate::Error::MalformedRequest),
@@ -52,7 +52,7 @@ pub struct EchoResponse<I> {
 
 #[cfg(test)]
 mod test {
-    use crate::{IdGenerator, Message, ResponseBuilder};
+    use crate::{Message, Node, ResponseBuilder};
 
     use super::{EchoHandler, EchoRequest, EchoResponse};
 
@@ -61,10 +61,14 @@ mod test {
         n: u32,
     }
 
-    impl IdGenerator<u32> for TestNode {
-        fn gen_id(&mut self) -> u32 {
+    impl Node<String, u32> for TestNode {
+        fn gen_msg_id(&mut self) -> u32 {
             self.n += 1;
             self.n
+        }
+
+        fn node_id(&self) -> String {
+            "u32".to_owned()
         }
     }
 

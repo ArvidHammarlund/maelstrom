@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use crate::{Address, MessageIndex, Node};
+use crate::{Address, MessageId, MessageIndex, NodeId};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub enum GenerateType {
@@ -13,7 +13,7 @@ pub enum GenerateType {
 
 /// This trait has to be implement for every Node alongside any workload specific functionality
 ///
-pub trait GenerateHandler<A: Address, I: MessageIndex>: Node<A, I> {
+pub trait GenerateHandler<A: Address, I: MessageIndex>: NodeId<A> + MessageId<I> {
     fn respond_generate(
         &mut self,
         incoming: &GeneratorRequest<I>,
@@ -55,49 +55,56 @@ pub struct GeneratorResponse<I> {
     pub id: String,
 }
 
-// #[cfg(test)]
-// mod test {
-//     use crate::{Message, Node, ResponseBuilder};
+#[cfg(test)]
+mod test {
+    use crate::{Message, MessageId, NodeId, ResponseBuilder};
 
-//     use super::{GenerateHandler, GeneratorRequest, GeneratorResponse};
+    use super::{GenerateHandler, GeneratorRequest, GeneratorResponse};
 
-//     #[derive(Default)]
-//     pub struct TestNode {
-//         n: u32,
-//     }
+    #[derive(Default)]
+    pub struct TestNode {
+        n: u32,
+    }
 
-//     impl Node<String, u32> for TestNode {
-//         fn gen_msg_id(&mut self) -> u32 {
-//             self.n += 1;
-//             self.n
-//         }
+    impl MessageId<u32> for TestNode {
+        fn gen_msg_id(&mut self) -> u32 {
+            self.n += 1;
+            self.n
+        }
+    }
 
-//         fn node_id(&self) -> String {
-//             "u32".to_owned()
-//         }
-//     }
+    impl NodeId<String> for TestNode {
+        fn node_id(&self) -> String {
+            "n2".to_owned()
+        }
 
-//     impl GeneratorHandler<String, u32> for TestNode {}
-//     impl ResponseBuilder<String, GeneratorRequest<u32>, GeneratorResponse<u32>> for TestNode {}
+        fn set_node_id(&self, id: String) -> Result<(), crate::Error> {
+            self.n = id;
+            Ok(())
+        }
+    }
 
-//     #[test]
-//     fn test_parse_init() {
-//         let request = r#"{
-//           "src": "c1",
-//           "dest": "n1",
-//           "body": {
-//             "type": "generator",
-//             "msg_id": 1,
-//             "generator": "Please generator 35"
-//           }
-//         } "#;
-//         let mut test_node = TestNode::default();
-//         let expected = r#"{"src":"n1","dest":"c1","body":{"type":"generator_ok","in_reply_to":1,"msg_id":1,"generator":"Please generator 35"}}"#;
-//         let request: Message<String, GeneratorRequest<u32>> =
-//             serde_json::from_str(request).unwrap();
-//         let response_body = test_node.respond_generator(&request.body).unwrap();
-//         let response = TestNode::build_response(&request, response_body);
-//         let res = serde_json::to_string(&response).unwrap();
-//         assert_eq!(expected, res);
-//     }
-// }
+    impl GenerateHandler<String, u32> for TestNode {}
+    impl ResponseBuilder<String, GeneratorRequest<u32>, GeneratorResponse<u32>> for TestNode {}
+
+    #[test]
+    fn test_parse_init() {
+        let request = r#"{
+          "src": "c1",
+          "dest": "n1",
+          "body": {
+            "type": "generate",
+            "msg_id": 1,
+            "generator": "Please generator 35"
+          }
+        } "#;
+        let mut test_node = TestNode::default();
+        let expected = r#"{"src":"n1","dest":"c1","body":{"type":"generate_ok","in_reply_to":1,"msg_id":1,"id":"n2-1"}}"#;
+        let request: Message<String, GeneratorRequest<u32>> =
+            serde_json::from_str(request).unwrap();
+        let response_body = test_node.respond_generate(&request.body).unwrap();
+        let response = TestNode::build_response(&request, response_body);
+        let res = serde_json::to_string(&response).unwrap();
+        assert_eq!(expected, res);
+    }
+}

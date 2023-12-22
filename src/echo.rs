@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use crate::{Address, MessageIndex, Node};
+use crate::{Address, MessageId, MessageIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub enum EchoType {
@@ -13,7 +13,7 @@ pub enum EchoType {
 
 /// This trait has to be implement for every Node alongside any workload specific functionality
 ///
-pub trait EchoHandler<A: Address, I: MessageIndex>: Node<A, I> {
+pub trait EchoHandler<A: Address, I: MessageIndex>: MessageId<I> {
     fn respond_echo(&mut self, incoming: &EchoRequest<I>) -> Result<EchoResponse<I>, crate::Error> {
         match incoming.kind {
             EchoType::Request => Ok(EchoResponse {
@@ -52,7 +52,7 @@ pub struct EchoResponse<I> {
 
 #[cfg(test)]
 mod test {
-    use crate::{Message, Node, ResponseBuilder};
+    use crate::{Message, MessageId, ResponseBuilder};
 
     use super::{EchoHandler, EchoRequest, EchoResponse};
 
@@ -61,14 +61,10 @@ mod test {
         n: u32,
     }
 
-    impl Node<String, u32> for TestNode {
+    impl MessageId<u32> for TestNode {
         fn gen_msg_id(&mut self) -> u32 {
             self.n += 1;
             self.n
-        }
-
-        fn node_id(&self) -> String {
-            "u32".to_owned()
         }
     }
 

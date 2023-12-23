@@ -1,10 +1,10 @@
 use crate::MessageIndex;
-use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use derive_new::new;
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Debug, Deserialize, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, FromPrimitive)]
-#[serde(try_from = "u32")]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u32)]
 pub enum Code {
     Timeout = 0,
     NodeNotFound = 1,
@@ -19,23 +19,7 @@ pub enum Code {
     TxnConflict = 30,
 }
 
-impl Serialize for Code {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_u32(self.clone() as u32)
-    }
-}
-
-impl TryFrom<u32> for Code {
-    type Error = &'static str;
-    fn try_from(x: u32) -> Result<Code, Self::Error> {
-        num_traits::FromPrimitive::from_u32(x).ok_or("invalid value for code field")
-    }
-}
-
-#[derive(thiserror::Error, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Clone)]
+#[derive(thiserror::Error, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Clone, new)]
 #[serde(tag = "type", rename = "error")]
 pub struct Error<I: MessageIndex> {
     in_reply_to: I,

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use crate::{Address, MessageId, MessageIndex};
+use crate::{error::Code, Address, MessageId, MessageIndex};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(tag = "type")]
@@ -24,14 +24,18 @@ pub enum EchoBody<I> {
 /// This trait has to be implement for every Node alongside any workload specific functionality
 ///
 pub trait EchoHandler<A: Address, I: MessageIndex>: MessageId<I> {
-    fn respond_echo(&mut self, request: EchoBody<I>) -> Result<EchoBody<I>, crate::Error> {
+    fn respond_echo(&mut self, request: EchoBody<I>) -> Result<EchoBody<I>, crate::Error<I>> {
         match request {
             EchoBody::Request { message_id, echo } => Ok(EchoBody::Response {
                 in_reply_to: message_id,
                 message_id: self.gen_msg_id(),
                 echo,
             }),
-            _ => Err(crate::Error::MalformedRequest),
+            EchoBody::Response { message_id, .. } => Err(crate::Error::new(
+                message_id,
+                Code::MalformedRequest,
+                "Request is response".to_owned(),
+            )),
         }
     }
 }
@@ -55,7 +59,7 @@ mod test {
     }
 
     impl EchoHandler<String, u32> for TestNode {}
-    impl ResponseBuilder<String, EchoBody<u32>> for TestNode {}
+    impl ResponseBuilder<String, u32, EchoBody<u32>> for TestNode {}
 
     #[test]
     fn test_parse_echo() {

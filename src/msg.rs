@@ -19,8 +19,11 @@ impl MessageIndex for u32 {}
 
 /// This trait determines the source address of outcoming packages
 ///
-pub trait ResponseBuilder<A: Address, B1, B2> {
-    fn build_response(request: &Message<A, B1>, new_body: B2) -> Message<A, B2> {
+pub trait ResponseBuilder<A: Address, I: MessageIndex, B> {
+    fn build_response(
+        request: &Message<A, B>,
+        new_body: Result<B, crate::Error<I>>,
+    ) -> Message<A, Result<B, crate::Error<I>>> {
         Message {
             source: request.destination.clone(),
             destination: request.source.clone(),

@@ -1,6 +1,5 @@
 mod error;
 pub use error::Error;
-
 pub mod broadcast;
 pub mod echo;
 pub mod generate;
@@ -9,8 +8,8 @@ pub mod init;
 mod msg;
 pub use msg::{Address, Message, MessageIndex, ResponseBuilder};
 
-pub trait NodeId<A: Address> {
-    fn set_node_id(&mut self, id: A) -> Result<(), crate::Error>;
+pub trait NodeId<A: Address, I: MessageIndex> {
+    fn set_node_id(&mut self, id: A) -> Result<(), crate::Error<I>>;
     fn node_id(&self) -> A;
 }
 

@@ -64,6 +64,7 @@ mod test {
     #[derive(Default)]
     pub struct TestNode {
         n: u32,
+        id: String,
     }
 
     impl MessageId<u32> for TestNode {
@@ -78,8 +79,8 @@ mod test {
             "n2".to_owned()
         }
 
-        fn set_node_id(&self, id: String) -> Result<(), crate::Error> {
-            self.n = id;
+        fn set_node_id(&mut self, _id: String) -> Result<(), crate::Error> {
+            self.id = "123".to_owned();
             Ok(())
         }
     }

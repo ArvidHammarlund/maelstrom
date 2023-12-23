@@ -5,7 +5,7 @@ pub mod echo;
 pub mod generate;
 pub mod init;
 
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
 /// Unique identifier for a node
@@ -42,20 +42,37 @@ pub trait TopologyRegistry<A: Address> {
     fn set_topology(&mut self, topology: Vec<A>);
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(untagged, remote = "Result")]
+enum ResultDef<T, E> {
+    Ok(T),
+    Err(E),
+}
+
 /// Main communication medium for the network
 ///
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct Message<A: Address, B, I: MessageIndex> {
+pub struct Message<
+    A: Address,
+    B: DeserializeOwned + Serialize,
+    I: MessageIndex + DeserializeOwned + Serialize,
+> {
     #[serde(rename = "src")]
     pub source: A,
     #[serde(rename = "dest")]
     pub destination: A,
+    #[serde(with = "ResultDef")]
     pub body: Result<B, crate::Error<I>>,
 }
 
 /// This trait determines the source address of outcoming packages
 ///
-pub trait ResponseBuilder<A: Address, I: MessageIndex, B> {
+pub trait ResponseBuilder<
+    A: Address,
+    I: MessageIndex + DeserializeOwned + Serialize,
+    B: DeserializeOwned + Serialize,
+>
+{
     fn build_response(
         request: &Message<A, B, I>,
         new_body: Result<B, crate::Error<I>>,

@@ -94,9 +94,12 @@ mod test {
             n: "hello".to_owned(),
         };
         let expected = r#"{"src":"123","dest":"321","body":{"type":"init_ok","in_reply_to":1}}"#;
-        let request: Message<String, InitBody<u32, String>> =
+        let request: Message<String, InitBody<u32, String>, u32> =
             serde_json::from_str(request).unwrap();
-        let response_body = node.respond_init(request.body.clone());
+        let response_body = request
+            .body
+            .clone()
+            .and_then(|body| node.respond_init(body));
         let response = TestNode::build_response(&request, response_body);
         let res = serde_json::to_string(&response).unwrap();
         assert_eq!(expected, res);

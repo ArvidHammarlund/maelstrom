@@ -114,10 +114,14 @@ mod test {
           }
         } "#;
         let mut test_node = TestNode::default();
-        let expected = r#"{"src":"n1","dest":"c1","body":{"type":"broadcast_ok","in_reply_to":1,"msg_id":1,"id":"n2-1"}}"#;
-        let request: Message<String, BroadcastBody<u32, u32>> =
+        let expected =
+            r#"{"src":"n1","dest":"c1","body":{"type":"broadcast_ok","in_reply_to":1,"msg_id":1}}"#;
+        let request: Message<String, BroadcastBody<u32, u32>, u32> =
             serde_json::from_str(request).unwrap();
-        let response_body = test_node.respond_broadcast(request.body.clone());
+        let response_body = request
+            .body
+            .clone()
+            .and_then(|body| test_node.respond_broadcast(body));
         let response = TestNode::build_response(&request, response_body);
         let res = serde_json::to_string(&response).unwrap();
         assert_eq!(expected, res);

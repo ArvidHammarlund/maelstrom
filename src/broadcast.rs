@@ -10,16 +10,28 @@ where
     I: MessageIndex,
 {
     #[serde(rename = "broadcast")]
-    Request {
+    PushRequest {
         #[serde(rename = "msg_id")]
         message_id: I,
         message: T,
     },
     #[serde(rename = "broadcast_ok")]
-    Response {
+    PushResponse {
         in_reply_to: I,
         #[serde(rename = "msg_id")]
         message_id: I,
+    },
+    #[serde(rename = "read")]
+    ReadRequest {
+        #[serde(rename = "msg_id")]
+        message_id: I,
+    },
+    #[serde(rename = "read_ok")]
+    ReadResponse {
+        #[serde(rename = "msg_id")]
+        message_id: I,
+        in_reply_to: I,
+        messages: Vec<T>,
     },
 }
 
@@ -36,18 +48,28 @@ where
         request: BroadcastBody<I, T>,
     ) -> Result<BroadcastBody<I, T>, crate::Error<I>> {
         match request {
-            BroadcastBody::Request {
+            BroadcastBody::PushRequest {
                 message,
                 message_id,
             } => {
                 let msg_id = self.gen_msg_id();
                 self.push_msg(message);
-                Ok(BroadcastBody::Response {
+                Ok(BroadcastBody::PushResponse {
                     in_reply_to: message_id,
                     message_id: msg_id,
                 })
             }
-            BroadcastBody::Response { message_id, .. } => Err(crate::Error::new(
+            BroadcastBody::ReadRequest { message_id } => Ok(BroadcastBody::ReadResponse {
+                in_reply_to: message_id,
+                message_id: self.gen_msg_id(),
+                messages: self.messages().to_owned(),
+            }),
+            BroadcastBody::PushResponse { message_id, .. } => Err(crate::Error::new(
+                message_id,
+                Code::MalformedRequest,
+                "Request is response".to_owned(),
+            )),
+            BroadcastBody::ReadResponse { message_id, .. } => Err(crate::Error::new(
                 message_id,
                 Code::MalformedRequest,
                 "Request is response".to_owned(),
@@ -124,6 +146,46 @@ mod test {
             .and_then(|body| test_node.respond_broadcast(body));
         let response = TestNode::build_response(&request, response_body);
         let res = serde_json::to_string(&response).unwrap();
+        assert_eq!(expected, res);
+    }
+
+    #[test]
+    fn test_broadcast_read() {
+        let request = r#"{
+          "src": "c1",
+          "dest": "n1",
+          "body": {
+            "type": "broadcast",
+            "message": 1000,
+            "msg_id": 1
+          }
+        } "#;
+        let read = r#"{
+          "src": "c1",
+          "dest": "n1",
+          "body": {
+            "type": "read",
+            "msg_id": 1
+          }
+        } "#;
+        let mut test_node = TestNode::default();
+        let expected = r#"{"src":"n1","dest":"c1","body":{"type":"read_ok","msg_id":4,"in_reply_to":1,"messages":[1000,1000,1000]}}"#;
+        let request: Message<String, BroadcastBody<u32, u32>, u32> =
+            serde_json::from_str(request).unwrap();
+        for _ in 0..3 {
+            let _ = request
+                .body
+                .clone()
+                .and_then(|body| test_node.respond_broadcast(body));
+        }
+        let read: Message<String, BroadcastBody<u32, u32>, u32> =
+            serde_json::from_str(read).unwrap();
+        let res = read
+            .body
+            .clone()
+            .and_then(|body| test_node.respond_broadcast(body));
+        let res = TestNode::build_response(&read, res);
+        let res = serde_json::to_string(&res).unwrap();
         assert_eq!(expected, res);
     }
 }

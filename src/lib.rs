@@ -5,7 +5,7 @@ pub mod echo;
 pub mod generate;
 pub mod init;
 
-use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
 /// Unique identifier for a node
@@ -44,22 +44,22 @@ pub trait TopologyRegistry<A: Address> {
 
 /// Main communication medium for the network
 ///
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
-pub struct Message<A: Address, B> {
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct Message<A: Address, B, I: MessageIndex> {
     #[serde(rename = "src")]
     pub source: A,
     #[serde(rename = "dest")]
     pub destination: A,
-    pub body: B,
+    pub body: Result<B, crate::Error<I>>,
 }
 
 /// This trait determines the source address of outcoming packages
 ///
 pub trait ResponseBuilder<A: Address, I: MessageIndex, B> {
     fn build_response(
-        request: &Message<A, B>,
+        request: &Message<A, B, I>,
         new_body: Result<B, crate::Error<I>>,
-    ) -> Message<A, Result<B, crate::Error<I>>> {
+    ) -> Message<A, B, I> {
         Message {
             source: request.destination.clone(),
             destination: request.source.clone(),
@@ -67,33 +67,3 @@ pub trait ResponseBuilder<A: Address, I: MessageIndex, B> {
         }
     }
 }
-
-// // impl<A: Address, B, I: MessageIndex> Serialize for Message<A, Result<B, crate::Error<I>>> {
-// //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-// //     where
-// //         S: Serializer,
-// //     {
-// //         let mut state = serializer.serialize_struct("Message", 3)?;
-// //         state.serialize_field("src", &self.source)?;
-// //         state.serialize_field("dest", &self.destination)?;
-// //         match &self.body {
-// //             Ok(value) => state.serialize_field("body", &value)?,
-// //             Err(error) => state.serialize_field("body", error)?,
-// //         }
-// //         state.end()
-// //     }
-// // }
-
-// // fn skip_result<'de, D, B, I>(d: Result<B, crate::Error<I>>) -> Result<B, D::Error>
-// // where
-// //     D: Deserializer<'de>,
-// //     I: MessageIndex,
-// // {
-
-// // }
-
-// fn skip_result<S, B, I: MessageIndex>(body: &B, serializer: S) -> Result<S::Ok, S::Error>
-// where
-//     S: Serializer,
-// {
-// }

@@ -4,6 +4,7 @@ pub mod broadcast;
 pub mod echo;
 pub mod generate;
 pub mod init;
+pub mod topology;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
@@ -26,7 +27,8 @@ impl MessageIndex for u32 {}
 
 pub trait NodeId<A: Address, I: MessageIndex> {
     fn set_node_id(&mut self, id: A) -> Result<(), crate::Error<I>>;
-    fn node_id(&self) -> A;
+    // Maybe change to -> impl AsRef<A> when 1.75 stable is out?
+    fn node_id(&self) -> &A;
 }
 
 pub trait MessageId<I: MessageIndex> {

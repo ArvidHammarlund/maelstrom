@@ -102,8 +102,8 @@ mod test {
     }
 
     impl NodeId<String, u32> for TestNode {
-        fn node_id(&self) -> String {
-            "n2".to_owned()
+        fn node_id(&self) -> &String {
+            &self.id
         }
 
         fn set_node_id(&mut self, id: String) -> Result<(), crate::Error<u32>> {

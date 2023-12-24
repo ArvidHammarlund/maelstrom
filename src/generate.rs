@@ -77,8 +77,8 @@ mod test {
     }
 
     impl NodeId<String, u32> for TestNode {
-        fn node_id(&self) -> String {
-            "n2".to_owned()
+        fn node_id(&self) -> &String {
+            &self.id
         }
 
         fn set_node_id(&mut self, _id: String) -> Result<(), crate::Error<u32>> {
@@ -101,7 +101,10 @@ mod test {
             "generator": "Please generator 35"
           }
         } "#;
-        let mut test_node = TestNode::default();
+        let mut test_node = TestNode {
+            n: 0,
+            id: "n2".to_owned(),
+        };
         let expected = r#"{"src":"n1","dest":"c1","body":{"type":"generate_ok","in_reply_to":1,"msg_id":1,"id":"n2-1"}}"#;
         let request: Message<String, GenerateBody<u32>, u32> =
             serde_json::from_str(request).unwrap();

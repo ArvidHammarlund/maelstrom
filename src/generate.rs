@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use crate::{error::Code, Address, MessageId, MessageIndex, NodeId};
+use crate::{error::Code, Address, MessageIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "type")]
@@ -59,7 +59,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{Message, MessageId, NodeId, ResponseBuilder};
+    use crate::{Message, MessageIdRegistry, NodeIdRegistry, ResponseBuilder};
 
     use super::{GenerateBody, GenerateHandler};
 
@@ -69,14 +69,14 @@ mod test {
         id: String,
     }
 
-    impl MessageId<u32> for TestNode {
+    impl MessageIdRegistry<u32> for TestNode {
         fn gen_msg_id(&mut self) -> u32 {
             self.n += 1;
             self.n
         }
     }
 
-    impl NodeId<String, u32> for TestNode {
+    impl NodeIdRegistry<String, u32> for TestNode {
         fn node_id(&self) -> &String {
             &self.id
         }

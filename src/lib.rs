@@ -18,20 +18,17 @@ impl Address for &str {}
 
 /// Internaly unique identifier for processed messages
 ///
-pub trait MessageIndex:
-    ToString + Clone + Debug + Eq + PartialEq + Hash + Ord + PartialOrd
-{
-}
+pub trait MessageId: ToString + Clone + Debug + Eq + PartialEq + Hash + Ord + PartialOrd {}
 
-impl MessageIndex for u32 {}
+impl MessageId for u32 {}
 
-pub trait NodeId<A: Address, I: MessageIndex> {
+pub trait NodeIdRegistry<A: Address, I: MessageId> {
     fn set_node_id(&mut self, id: A) -> Result<(), crate::Error<I>>;
     // Maybe change to -> impl AsRef<A> when 1.75 stable is out?
     fn node_id(&self) -> &A;
 }
 
-pub trait MessageId<I: MessageIndex> {
+pub trait MessageIdRegistry<I: MessageId> {
     fn gen_msg_id(&mut self) -> I;
 }
 
@@ -54,11 +51,12 @@ enum ResultDef<T, E> {
 /// Main communication medium for the network
 ///
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct Message<
+pub struct Message<A, B, I>
+where
     A: Address,
     B: DeserializeOwned + Serialize,
-    I: MessageIndex + DeserializeOwned + Serialize,
-> {
+    I: MessageId + DeserializeOwned + Serialize,
+{
     #[serde(rename = "src")]
     pub source: A,
     #[serde(rename = "dest")]
@@ -71,7 +69,7 @@ pub struct Message<
 ///
 pub trait ResponseBuilder<
     A: Address,
-    I: MessageIndex + DeserializeOwned + Serialize,
+    I: MessageId + DeserializeOwned + Serialize,
     B: DeserializeOwned + Serialize,
 >
 {
